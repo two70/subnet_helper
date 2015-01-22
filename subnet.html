@@ -3,6 +3,19 @@
 	<head>
 	<meta charset="UTF-8">
 		<title>IP Subnet Helper</title>
+	<style>
+	div.box
+{
+    -moz-box-sizing: border-box; /* Firefox */
+    border: 2px solid #a1a1a1;
+    padding: 10px 40px; 
+    background: #555555;
+    border-radius: 25px;
+    float: left;
+    box-shadow: 10px 10px 5px #888888;
+    color: white;
+}
+</style>
 	</head>
 
 	<body>
@@ -12,8 +25,10 @@
 			<br>
 		</form>
 		<button onclick="getSubnet()">Click me</button>
-		<p id="ipRanges"></p>
-		<p id="binary"></p>
+		<br>
+		<div id="header"></div>
+		<div id="ipRanges" class="box"></div>
+		<div id="binary" class="box"></div>
 		<script type="text/javascript">
 			function getSubnet() {
 				var classA = "255.0.0.0";
@@ -21,12 +36,10 @@
 				var classC = "255.255.255.0";
 				var ip = document.getElementById("ipIn").value;
 				var mask = "";
-
 				var CIDRMask = ip.split("/");
 				if (CIDRMask[1])
 					var CIDR = CIDRMask[1];
 				var ipOctets = CIDRMask[0].split(".");
-
 				var blockSize = 0;
 				if (8 - CIDR % 8 == 8)
 			        blockSize = 1;
@@ -61,7 +74,6 @@
 					var defaultMask = classC.split(".");
 					var netBits = 24;
 				}
-
 				var customNetBits = netBits;
 				var customOctet = 0;
 				for (var x = 0; x < 4; x++) {
@@ -89,7 +101,6 @@
 				var hostBits = 32 - (parseInt(netBits));
 				var customNets = Math.pow(2, customNetBits);
 				var hosts = Math.pow(2 ,hostBits);
-
 				var ipResult = [];
 				var maskResult = [];
 				var defIP = [];
@@ -98,14 +109,14 @@
 					ipResult.push(ipOctets[x] & maskOctets[x]);
 				}
 				var binary = "";
-				var output = "Subnets = " + customNets + " Available Hosts = " + (hosts - 2) + "<br>";
+				var header = "Subnets = " + customNets + " Available Hosts = " + (hosts - 2);
+				var output = "";
 				for (var x = 1; x <= customNets; x++) {
 					if (x < 10)
 						output += "Network 0" + x + "   " + defIP.join(".");				
 					else
 						output += "Network " + x + "   " + defIP.join(".");
 					output += "<br>";
-
 					for (var y = 0; y < 4; y ++) {
 						if (y == 3)
 							binary += convertToBin(parseInt(defIP[y])) + "<br>";
@@ -120,10 +131,10 @@
 					else
 						defIP[customOctet] += blockSize;
 				}
+				document.getElementById("header").innerHTML = header;
 				document.getElementById("ipRanges").innerHTML = output;
 				document.getElementById("binary").innerHTML = binary;
 			}
-
 			function convertToBin(decimalVal) {
 				var result = "";
 			    result += " " + (Math.floor(decimalVal%1000/128)%2);
