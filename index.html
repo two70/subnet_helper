@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="UTF-8">
+		<title>IP Subnet Helper</title>
+
+		<style>
+		form {
+		    font-family: "Comic Sans MS", cursive, sans-serif;
+		    font-size: 20px;
+            border-radius: 5px;    
+		}
+            
+        input[type=text] {
+            width: 150px;         
+            background: #555555;
+		    border-radius: 25px;
+		    box-shadow: 5px 5px 5px #888888;
+            color: #f2f2f2;
+            font-size: 18px;
+        }
+        select {      
+            background: #555555;
+		    border-radius: 25px;
+		    box-shadow: 5px 5px 5px #888888;
+            color: #f2f2f2;
+            font-size: 18px;
+
+        }
+		div.header
+		{
+		    font-size: 20px;
+		    -moz-box-sizing: border-box; /* Firefox */
+		    border: 2px solid #a1a1a1;
+		    padding: 10px 10px;
+		    background: #555555;
+		    border-radius: 25px;
+		    box-shadow: 10px 10px 5px #888888;
+		    text-align: center;
+		    color: white;
+		}
+
+		div.container
+		{
+		    margin-left: auto;
+		    margin-right: auto;
+		    width: 98%;
+		}
+
+        div.boxLeft
+		{
+			font-size: 18px;
+		    -moz-box-sizing: border-box; /* Firefox */
+		    border: 2px solid #a1a1a1;
+		    padding: 10px 10px; 
+		    background: #555555;
+		    border-radius: 25px;
+		    text-align: center;
+		    box-shadow: 10px 10px 5px #888888;
+		    color: white;
+		}
+		</style>
+	</head>
+
+	<body>
+		<div class="container">
+		<form>
+            <h2>Subnet Helper</h2>
+			IP:
+			<input type="text" id="ipIn" onchange="getSubnet()">
+            <br><br>CIDR:
+            <select id="CIDR" onchange="getSubnet()">
+                <option value="31">31</option>
+                <option value="30">30</option>
+                <option value="29">29</option>
+                <option value="28">28</option>
+                <option value="27">27</option>
+                <option value="26">26</option>
+                <option value="25">25</option>
+                <option value="24" selected>24</option>
+                <option value="23">23</option>
+                <option value="22">22</option>
+                <option value="21">21</option>
+                <option value="20">20</option>
+                <option value="19">19</option>
+                <option value="18">18</option>
+                <option value="17">17</option>
+                <option value="16">16</option>
+                <option value="15">15</option>
+                <option value="14">14</option>
+                <option value="13">13</option>
+                <option value="12">12</option>
+                <option value="11">11</option>
+                <option value="10">10</option>
+                <option value="9">9</option>
+            </select>
+            <br>
+			<input type="checkbox" id="showBinary" onchange="getSubnet()">Show binary of each subnet?
+			<br>
+			<input type="checkbox" id="showBroadcast" onchange="getSubnet()">Show broadcast address?
+			<br>
+		</form>
+		
+		<br>
+		
+			<div id="header" class="header">Enter a valid IP address and a CIDR.<br><i>EX: 10.15.12.152</div>
+			<br>
+			<div id="ipRanges" class="boxLeft">Subnetting Helper</div>
+
+		</div>
+		<script type="text/javascript">
+		// TODO:	check input for anything but numbers, create drawer style options, work on getting just number keyboard layout, 
+		// 			fix name of application, fix permissions, create better icon 
+
+			// This function calculates every subnet based on the IP address and CIDR given in the input box on the form
+			function getSubnet() {
+				// Default IP address classes
+				var classA = "255.0.0.0";
+				var classB = "255.255.0.0";
+				var classC = "255.255.255.0";
+				// Get the value from the form's input box 
+				var ip = document.getElementById("ipIn").value;
+				if (!ip)
+					return
+				var mask = "";
+
+                var CIDR = document.getElementById("CIDR").value;
+				// Now we split the IP string into octets and do some error checking
+				var ipOctets = ip.split(".");
+				if (ipOctets.length != 4) {
+					document.getElementById("header").innerHTML = "Error: There has to be exactly 4 octets";
+                    document.getElementById("ipRanges").innerHTML = "";
+                    return
+				}
+				for (var x = 0; x < 4; x++) {
+					if (ipOctets[x] < 0 || ipOctets[x] > 255) {
+						document.getElementById("header").innerHTML = "Error: The range in each octet is 0-255";
+                    	document.getElementById("ipRanges").innerHTML = "";
+                    	return
+					}
+				}
+
+                // By finding out what class of address we are dealing with, we can determine which 
+				// default mask we need and how many bits are host bits
+				if (ipOctets[0] < 127) {
+					var defaultMask = classA.split(".");
+					var netBits = 8;
+				}
+				else if (ipOctets[0] > 127 && ipOctets[0] < 192) {
+					var defaultMask = classB.split(".");
+					var netBits = 16;
+				}
+				else if (ipOctets[0] > 191 && ipOctets[0] < 224) {
+					var defaultMask = classC.split(".");
+					var netBits = 24;
+				}
+                if (CIDR < netBits) {
+                    document.getElementById("header").innerHTML = "Error: CIDR must be greater than Default Subnt Mask";
+                    document.getElementById("ipRanges").innerHTML = "";
+                    return
+                }
+                
+				// The block size is the number of bits left in the octet after the network portion and then raised to the powers of two
+				var blockSize = 0;
+				// If the whole octet is network bits then the blocksize is only one
+				if (8 - CIDR % 8 == 8)
+			        blockSize = 1;
+			    // Otherwise we use the remainder (%) of bits left after devided by the CIDR
+			    else
+			        blockSize = Math.pow(2, 8 - (CIDR%8));
+			    
+			    // To create our custom subnet mask we need to find out how many bits are network bits by using the recently found block size
+			    if (CIDR % 8 == 0)
+						var newOctetBits = 0;
+					else
+						var newOctetBits = 256 - blockSize;
+
+				// Using the new octet, we make a custom subnet mask 
+				switch(Math.floor(CIDR / 8)) {
+					case 3:
+						mask += "255.255.255." + newOctetBits;
+						break;
+					case 2:
+						mask += "255.255." + newOctetBits + ".0";
+						break;
+					case 1:
+						mask += "255." + newOctetBits + ".0.0";
+						break;	
+				}
+                var maskOctets = mask.split(".");
+
+				var customNetBits = 0;
+				// The customOctet is whichever octet the network bits end, and the host bits begin
+				// This will tells us what our custom mask needs to be
+				var customOctet = 0;
+				var broadOctets = [];
+				for (var x = 0; x < 4; x++) {
+
+					if (maskOctets[x] != defaultMask[x]) {
+						customOctet = x;
+						if (maskOctets[x] == 128)
+							customNetBits += 1;
+						else if (maskOctets[x] == 192)
+							customNetBits += 2;
+						else if (maskOctets[x] == 224)
+							customNetBits += 3;
+						else if (maskOctets[x] == 240)
+							customNetBits += 4;
+						else if (maskOctets[x] == 248)
+							customNetBits += 5;
+						else if (maskOctets[x] == 252)
+							customNetBits += 6;
+						else if (maskOctets[x] == 254)
+							customNetBits += 7;
+						else if (maskOctets[x] == 255)
+							customNetBits += 8;
+					}
+				}
+				// Host bits are all the remaing bits after the net bits aka CIDR
+				var hostBits = 32 - (parseInt(CIDR));
+				// Custom nets is how many subnets we created by subnetting
+				var customNets = Math.pow(2, customNetBits);
+				// Hosts are 2 raised the number of host bits
+				var hosts = Math.pow(2 ,hostBits);
+                if (hosts - 2 < 0)
+                    hosts = 0;
+                else
+                    hosts -= 2;
+				// defIP is the default IP array after it has been ANDed with the mask
+				var defIP = [];
+				for (var x = 0; x < 4; x++) {
+					defIP.push(ipOctets[x] & defaultMask[x]);
+				}
+
+				var header = "Subnets: " + customNets + "<br>Available Hosts: " + hosts + "<br>Block Size: " + blockSize;
+				header += "<br>Default Subnet Mask: " + defaultMask.join(".") + "<br>Custom Subnet Mask: " + maskOctets.join("."); 
+				
+				// output stores the string that will be displayed in HTML. By using the '+' symbol we can concantenate strings togther
+				// to form one large one that can be sent to HTML
+				var iterations = 0;
+				var output = "";
+
+				for (var y = 0; y < 4; y++)
+					broadOctets.push(defIP[y]);
+					
+				if (customNets > 256) {
+					iterations = 256;
+					output += "There are a lot of subnets, displaying only the first 256<br>";
+				}
+				else
+					iterations = customNets;
+				
+				for (var x = 1; x <= iterations; x++) {
+					output += "Network " + x + ": " + defIP.join(".") + "<br>";
+					
+					if (document.getElementById("showBinary").checked) {
+						for (var y = 0; y < 4; y++) {
+							if (y == 3)
+								output += convertToBin(parseInt(defIP[y])) + "<br>";
+							else
+								output += convertToBin(parseInt(defIP[y])) + ".";
+						}
+					}
+
+					if (document.getElementById("showBroadcast").checked) {
+						broadOctets[customOctet] = (defIP[customOctet] + blockSize) -1;
+						var j = customOctet + 1;
+						while (j < 4) {
+							broadOctets[j] = 255;
+							j++;
+						}
+						output += "Broadcast " + x + ": " + broadOctets.join(".") + "<br>";
+						if (document.getElementById("showBinary").checked) {
+							for (var y = 0; y < 4; y++) {
+								if (y == 3)
+									output += convertToBin(parseInt(broadOctets[y])) + "<br><br>";
+								else
+									output += convertToBin(parseInt(broadOctets[y])) + ".";
+							}
+						}
+						else 
+							output += "<br>";
+					}
+
+					else
+						output += "<br>";
+					
+					if (defIP[customOctet] + blockSize > 255) {
+						defIP[customOctet-1] += 1;
+						defIP[customOctet] = 0;
+					}
+					else
+						defIP[customOctet] += blockSize;
+				}
+				// Sends strings to HTML to be displayed on screen
+				document.getElementById("header").innerHTML = header;
+				document.getElementById("ipRanges").innerHTML = output;
+			}
+
+			// Function to convert decimal to binary. It is hard for me to explain how it works, but it is very simple to use
+			function convertToBin(decimalVal) {
+				var result = "";
+			    result += " " + (Math.floor(decimalVal%1000/128)%2);
+			    result += " " + (Math.floor(decimalVal%1000/64)%2);
+			    result += " " + (Math.floor(decimalVal%1000/32)%2);
+			    result += " " + (Math.floor(decimalVal%1000/16)%2);
+			    result += " " + (Math.floor(decimalVal%1000/8)%2);
+			    result += " " + (Math.floor(decimalVal%1000/4)%2);
+			    result += " " + (Math.floor(decimalVal%1000/2)%2);
+			    result += " " + (Math.floor(decimalVal%1000)%2);
+				
+				return result;
+			}
+		</script>
+	</body>
+
+</html>
